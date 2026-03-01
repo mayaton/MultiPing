@@ -1,34 +1,35 @@
 # Multi targets Ping
 
 $targets = @"
-192.168.0.133
-
-"@ -split "\r\n"
+192.0.2.1
+198.51.100.1
+203.0.113.1
+"@ -split "\r\n" | Where-Object { $_ -ne "" }
 
 $interval = 500
 $repeat   = 100
 
 @(1..$repeat) | ForEach-Object {
     $targets | ForEach-Object {
-
         Start-Sleep -Milliseconds $interval
-        try {
 
-            $tc = Test-Connection $_ -count 1 -ErrorAction Stop
-
-            $result = "ok"
-        } catch [Exception] {
-
-            $result = "ng"
-        }
-
+        $target = $_
         $datetime = Get-Date -F "yyyy/MM/dd HH:mm:ss.fff"
 
-        $row = $result + "," + $datetime  + "," + $tc.Address + "," + $tc.ResponseTime
+        try {
+            $tc = Test-Connection $target -Count 1 -ErrorAction Stop
+            $result = "ok"
+            $address = $tc.Address
+            $responseTime = $tc.ResponseTime
+        } catch {
+            $result = "ng"
+            $address = $target
+            $responseTime = "-"
+        }
 
-        $row | ConvertFrom-Csv -Header @("Result","DateTime","Target","ResponseTime(ms)")
+        $row = $result + "," + $datetime + "," + $address + "," + $responseTime
+        $row | ConvertFrom-Csv -Header @("Result", "DateTime", "Target", "ResponseTime(ms)")
     }
-
 } | Out-GridView -Title "Ping Results"
 
 pause
